@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: |
+  A macro that takes in a Cloudformation template, and returns a python lambda layer
+
+Transform:
+  - "AWS::Serverless-2016-10-31"
+
+Resources:
+  Role:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: /
+      Policies:
+        - PolicyName: CfnMacroPolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogDelivery"
+                  - "logs:PutLogEvents"
+                  - "s3:*"
+                Resource:
+                  - "*"
+
+  Function:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      CodeUri: src/
+      Handler: app.handler
+      MemorySize: 128
+      Role: !GetAtt Role.Arn
+      Runtime: python3.8
+      Timeout: 120
+
+  CfnMacro:
+    Type: "AWS::CloudFormation::Macro"
+    Properties:
+      FunctionName: !GetAtt Function.Arn
+      Name: PythonLambdaLayer
+
+Outputs:
+  FunctionArn:
+    Description: Arn of created function
+    Value: !GetAtt Function.Arn

@@ -1,0 +1,46 @@
+Parameters:
+  stage:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - test
+      - prod
+
+Transform:
+  - DataScienceSDK
+
+Resources:
+  MySNSTopic:
+    Type: "SFDSSDK::Workflow"
+    Properties:
+      Code: |
+        import json
+        import stepfunctions
+
+        start_pass_state = Pass(
+          state_id="MyPassStartState"
+        )
+
+        wait_state = Wait(
+          state_id="Wait for 3 seconds",
+          seconds=3
+        )
+
+        end_pass_state = Pass(
+          state_id="MyPassEnvState"
+        )
+
+        workflow_definition=Chain([start_pass_state, wait_state, end_pass_state])
+        workflow = Workflow(
+          name="MyWorkflow_v1234",
+          definition=workflow_definition,
+          role=stepfunctions_execution_role
+        )
+
+        print(workflow.definition.to_json(pretty=True))
+      LambdaSteps:
+        - stateID: ""
+        - functionName: ""
+      StepfunctionsExecutionRole: "arn:aws:iam::921143734285:role/DSSDKSFCFNMacro-Role-HFVDN7PELGEB"
+      TopicName: MyTopic-testingstuff

@@ -1,6 +1,3 @@
-import json
-
-
 PREFIX = "SFDSSDK::"
 
 
@@ -10,6 +7,8 @@ def handle_template(request_id, template):
             print(resource)
             code = resource.get("Properties", {}).get("Code")
             print(exec(code))
+
+    return template
 
 
 def handler(event, context):

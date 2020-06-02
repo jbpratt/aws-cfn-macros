@@ -1,3 +1,5 @@
 .mypy_cache/
+.env/
 .aws-sam/
 samconfig.toml
+event.json
