@@ -1,5 +1,4 @@
 from typing import Dict
-from typing import List
 from typing import Union
 from typing import Any
 import subprocess
@@ -20,21 +19,25 @@ def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]
     for name, resource in template.get("Resources", {}).items():
         if resource["Type"] == PREFIX:
             props = resource["Properties"]
-            packages: List[Dict[str, str]] = props["Packages"]
+            package: Dict[str, str] = props["Package"]
             bucket = props["BucketName"]
 
-            directory = tempfile.TemporaryDirectory().name
+            package_str = "".join(f'{package["name"]}=={package["version"]}')
 
-            packages_str = "".join([f'{x["name"]}=={x["version"]} ' for x in packages])
-            subprocess.run(["pip", "install", packages_str, "-t", directory])
-            filename = packages_str.strip().replace("==", "-")
-            filename_w_dir = os.path.join(directory, filename)
+            filename = package_str.strip().replace("==", "-")
+            layer_dir = os.path.join(
+                package["name"], "python", "lib", "python3.8", "site-packages"
+            )
+            directory = os.path.join(tmp_dir, layer_dir)
+            subprocess.run(["pip", "install", package_str, "-t", directory])
 
-            shutil.make_archive(filename_w_dir, "zip", directory)
+            os.chdir(tmp_dir)
+            path = shutil.make_archive(layer_dir, "zip")
 
-            filename = filename + ".zip"
             try:
-                s3_client.put_object(Body=filename_w_dir, Bucket=bucket, Key=filename)
+                s3_client.put_object(
+                    Body=open(path, "rb"), Bucket=bucket, Key=filename + ".zip"
+                )
             except s3_client.exceptions.ClientError as err:
                 raise err
 
@@ -42,7 +45,7 @@ def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]
                 "Type": "AWS::Lambda::LayerVersion",
                 "Properties": {
                     "CompatibleRuntimes": props["CompatibleRuntimes"],
-                    "Content": {"S3Bucket": bucket, "S3Key": filename},
+                    "Content": {"S3Bucket": bucket, "S3Key": filename + ".zip"},
                     "LayerName": props["LayerName"],
                 },
             }
@@ -60,5 +63,4 @@ def handler(event, context) -> Dict[str, Union[str, int]]:
         fragment = handle_template(event["requestId"], event["fragment"])
     except Exception as e:
         raise e
-
     return {"requestId": event["requestId"], "status": status, "fragment": fragment}
