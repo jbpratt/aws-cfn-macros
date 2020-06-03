@@ -1,12 +1,11 @@
 from typing import Dict
 from typing import List
 from typing import Union
+from typing import Any
 import subprocess
 import tempfile
 import shutil
-import random
 import os
-import string
 
 import boto3
 
@@ -14,7 +13,7 @@ import boto3
 PREFIX = "AWS::Serverless::PythonLayer"
 
 
-def handle_template(request_id, template):
+def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]:
     s3_client = boto3.client("s3")
     new_resources = {}
 
@@ -28,8 +27,7 @@ def handle_template(request_id, template):
 
             packages_str = "".join([f'{x["name"]}=={x["version"]} ' for x in packages])
             subprocess.run(["pip", "install", packages_str, "-t", directory])
-
-            filename = "".join(random.choice(string.ascii_lowercase) for i in range(10))
+            filename = packages_str.strip().replace("==", "-")
             filename_w_dir = os.path.join(directory, filename)
 
             shutil.make_archive(filename_w_dir, "zip", directory)
