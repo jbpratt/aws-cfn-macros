@@ -25,9 +25,7 @@ def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]
             package_str = "".join(f'{package["name"]}=={package["version"]}')
 
             filename = package_str.strip().replace("==", "-")
-            layer_dir = os.path.join(
-                package["name"], "python", "lib", "python3.8", "site-packages"
-            )
+            layer_dir = os.path.join("python", "lib", "python3.8", "site-packages")
             directory = os.path.join(tmp_dir, layer_dir)
             subprocess.run(["pip", "install", package_str, "-t", directory])
 

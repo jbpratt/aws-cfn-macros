@@ -3,3 +3,4 @@
 .aws-sam/
 samconfig.toml
 event.json
+__pycache__/
