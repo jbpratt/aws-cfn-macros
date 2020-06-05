@@ -5,6 +5,7 @@ Description: |
 
 Transform:
   - "AWS::Serverless-2016-10-31"
+  - PythonLambdaLayer
 
 Resources:
   Role:
@@ -32,6 +33,17 @@ Resources:
                   - "s3:*"
                 Resource:
                   - "*"
+
+  StepfunctionsDepLayer:
+    Type: "AWS::Serverless::PythonLayer"
+    Properties:
+      BucketName: test
+      CompatibleRuntimes:
+        - python3.8
+      LayerName: stepfunctions
+      Package:
+        name: stepfunctions
+        version: "1.0.0.8"
 
   Function:
     Type: "AWS::Serverless::Function"
