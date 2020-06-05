@@ -9,7 +9,7 @@ import os
 import boto3
 
 
-PREFIX = "AWS::Serverless::PythonLayer"
+PREFIX = "AWS::Lambda::PythonLayer"
 
 
 def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]:
@@ -22,7 +22,8 @@ def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]
             package: Dict[str, str] = props["Package"]
             bucket = props["BucketName"]
 
-            package_str = "".join(f'{package["name"]}=={package["version"]}')
+            package_str = f'{package["name"]}=={package["version"]}'
+            tmp_dir = tempfile.TemporaryDirectory().name
 
             filename = package_str.strip().replace("==", "-")
             layer_dir = os.path.join("python", "lib", "python3.8", "site-packages")
@@ -59,6 +60,6 @@ def handler(event, context) -> Dict[str, Union[str, int]]:
     status = "success"
     try:
         fragment = handle_template(event["requestId"], event["fragment"])
-    except Exception as e:
-        raise e
+    except Exception:
+        status = "failed"
     return {"requestId": event["requestId"], "status": status, "fragment": fragment}
