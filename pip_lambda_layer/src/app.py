@@ -23,14 +23,14 @@ def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]
             bucket = props["BucketName"]
 
             package_str = f'{package["name"]}=={package["version"]}'
-            tmp_dir = tempfile.TemporaryDirectory().name
+            tmp_dir = tempfile.TemporaryDirectory()
 
             filename = package_str.strip().replace("==", "-")
             layer_dir = os.path.join("python", "lib", "python3.8", "site-packages")
-            directory = os.path.join(tmp_dir, layer_dir)
+            directory = os.path.join(tmp_dir.name, layer_dir)
             subprocess.run(["pip", "install", package_str, "-t", directory])
 
-            os.chdir(tmp_dir)
+            os.chdir(tmp_dir.name)
             path = shutil.make_archive(layer_dir, "zip")
 
             try:
