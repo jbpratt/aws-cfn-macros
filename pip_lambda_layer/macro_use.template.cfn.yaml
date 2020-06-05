@@ -10,7 +10,7 @@ Resources:
         - python3.6
         - python3.7
         - python3.8
-      LayerName: MyTopic-testingstuff
-      Packages:
-        - name: boto3
-          version: "1.13.20"
+      LayerName: six
+      Package:
+        name: six
+        version: "1.15.0"

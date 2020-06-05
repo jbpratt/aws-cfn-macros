@@ -1,42 +1,42 @@
 from typing import Dict
-from typing import List
 from typing import Union
+from typing import Any
 import subprocess
 import tempfile
 import shutil
-import random
 import os
-import string
 
 import boto3
 
 
-PREFIX = "AWS::Serverless::PythonLayer"
+PREFIX = "AWS::Lambda::PythonLayer"
 
 
-def handle_template(request_id, template):
+def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]:
     s3_client = boto3.client("s3")
     new_resources = {}
 
     for name, resource in template.get("Resources", {}).items():
         if resource["Type"] == PREFIX:
             props = resource["Properties"]
-            packages: List[Dict[str, str]] = props["Packages"]
+            package: Dict[str, str] = props["Package"]
             bucket = props["BucketName"]
 
-            directory = tempfile.TemporaryDirectory().name
+            package_str = f'{package["name"]}=={package["version"]}'
+            tmp_dir = tempfile.TemporaryDirectory().name
 
-            packages_str = "".join([f'{x["name"]}=={x["version"]} ' for x in packages])
-            subprocess.run(["pip", "install", packages_str, "-t", directory])
+            filename = package_str.strip().replace("==", "-")
+            layer_dir = os.path.join("python", "lib", "python3.8", "site-packages")
+            directory = os.path.join(tmp_dir, layer_dir)
+            subprocess.run(["pip", "install", package_str, "-t", directory])
 
-            filename = "".join(random.choice(string.ascii_lowercase) for i in range(10))
-            filename_w_dir = os.path.join(directory, filename)
+            os.chdir(tmp_dir)
+            path = shutil.make_archive(layer_dir, "zip")
 
-            shutil.make_archive(filename_w_dir, "zip", directory)
-
-            filename = filename + ".zip"
             try:
-                s3_client.put_object(Body=filename_w_dir, Bucket=bucket, Key=filename)
+                s3_client.put_object(
+                    Body=open(path, "rb"), Bucket=bucket, Key=filename + ".zip"
+                )
             except s3_client.exceptions.ClientError as err:
                 raise err
 
@@ -44,7 +44,7 @@ def handle_template(request_id, template):
                 "Type": "AWS::Lambda::LayerVersion",
                 "Properties": {
                     "CompatibleRuntimes": props["CompatibleRuntimes"],
-                    "Content": {"S3Bucket": bucket, "S3Key": filename},
+                    "Content": {"S3Bucket": bucket, "S3Key": filename + ".zip"},
                     "LayerName": props["LayerName"],
                 },
             }
@@ -60,7 +60,6 @@ def handler(event, context) -> Dict[str, Union[str, int]]:
     status = "success"
     try:
         fragment = handle_template(event["requestId"], event["fragment"])
-    except Exception as e:
-        raise e
-
+    except Exception:
+        status = "failed"
     return {"requestId": event["requestId"], "status": status, "fragment": fragment}
