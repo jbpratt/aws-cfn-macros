@@ -34,26 +34,29 @@ Resources:
                 Resource:
                   - "*"
 
-  StepfunctionsDepLayer:
-    Type: "AWS::Serverless::PythonLayer"
+  DepLayer:
+    Type: "AWS::Lambda::PythonLayer"
     Properties:
       BucketName: test
       CompatibleRuntimes:
         - python3.8
-      LayerName: stepfunctions
+      LayerName: camelcase
       Package:
-        name: stepfunctions
-        version: "1.0.0.8"
+        name: camelcase
+        version: "0.2"
 
   Function:
     Type: "AWS::Serverless::Function"
+    DependsOn: StepfunctionsDepLayer
     Properties:
       CodeUri: src/
       Handler: app.handler
+      Layers:
+        - !Ref StepfunctionsDepLayer
       MemorySize: 128
       Role: !GetAtt Role.Arn
       Runtime: python3.8
-      Timeout: 3
+      Timeout: 30
 
   CfnMacro:
     Type: "AWS::CloudFormation::Macro"
