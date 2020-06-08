@@ -6,7 +6,7 @@ Transform:
   - PythonLambdaLayer
 Resources:
   SixLayer:
-    Type: "AWS::Lambda::PythonLayer"
+    Type: "PythonLayer"
     Properties:
       BucketName: ""
       CompatibleRuntimes:
