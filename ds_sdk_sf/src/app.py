@@ -1,8 +1,8 @@
-PREFIX = "AWS::DSSDK::Workflow"
+PREFIX = "DSSDK::Workflow"
 
 
 def handle_template(request_id, template):
-    for name, resource in template.get("Resources", {}).items():
+    for _name, resource in template.get("Resources", {}).items():
         if resource["Type"].startswith(PREFIX):
             props = resource["Properties"]
             workflow = {}
@@ -26,15 +26,14 @@ def handle_template(request_id, template):
     return template
 
 
-def handler(event, context):
+def handler(event, _context):
     fragment = event["fragment"]
     status = "success"
 
     try:
         fragment = handle_template(event["requestId"], event["fragment"])
-    except Exception as e:
+    except Exception:
         status = "fail"
-        raise e
 
     return {
         "requestId": event["requestId"],

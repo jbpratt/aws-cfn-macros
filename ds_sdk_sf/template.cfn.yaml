@@ -5,7 +5,6 @@ Description: |
 
 Transform:
   - "AWS::Serverless-2016-10-31"
-  - PythonLambdaLayer
 
 Resources:
   Role:
@@ -35,7 +34,9 @@ Resources:
                   - "*"
 
   DepLayer:
-    Type: "AWS::Lambda::PythonLayer"
+    Type: "PythonLayer"
+    Transform:
+      Name: PythonLambdaLayer
     Properties:
       BucketName: test
       CompatibleRuntimes:

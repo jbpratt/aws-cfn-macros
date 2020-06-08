@@ -9,7 +9,7 @@ import os
 import boto3
 
 
-PREFIX = "AWS::Lambda::PythonLayer"
+PREFIX = "PythonLayer"
 
 
 def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]:
