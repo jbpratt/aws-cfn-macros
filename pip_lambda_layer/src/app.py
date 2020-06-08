@@ -12,11 +12,9 @@ import boto3
 PREFIX = "PythonLayer"
 
 
-def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]:
+def handle_template(template: Dict[str, Any]) -> Dict[str, Any]:
     s3_client = boto3.client("s3")
-    new_resources = {}
-
-    for name, resource in template.get("Resources", {}).items():
+    for _name, resource in template.get("Resources", {}).items():
         if resource["Type"] == PREFIX:
             props = resource["Properties"]
             package: Dict[str, str] = props["Package"]
@@ -28,7 +26,7 @@ def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]
             filename = package_str.strip().replace("==", "-")
             layer_dir = os.path.join("python", "lib", "python3.8", "site-packages")
             directory = os.path.join(tmp_dir.name, layer_dir)
-            subprocess.run(["pip", "install", package_str, "-t", directory])
+            subprocess.run(["pip", "install", package_str, "-t", directory], check=True)
 
             os.chdir(tmp_dir.name)
             path = shutil.make_archive(layer_dir, "zip")
@@ -40,26 +38,33 @@ def handle_template(request_id: str, template: Dict[str, Any]) -> Dict[str, Any]
             except s3_client.exceptions.ClientError as err:
                 raise err
 
-            new_resources[name] = {
-                "Type": "AWS::Lambda::LayerVersion",
-                "Properties": {
-                    "CompatibleRuntimes": props["CompatibleRuntimes"],
-                    "Content": {"S3Bucket": bucket, "S3Key": filename + ".zip"},
-                    "LayerName": props["LayerName"],
-                },
-            }
-
-    for name, resource in new_resources.items():
-        template["Resources"][name] = resource
+            resource.update(
+                {
+                    "Type": "AWS::Lambda::LayerVersion",
+                    "Properties": {
+                        "CompatibleRuntimes": props["CompatibleRuntimes"],
+                        "Content": {"S3Bucket": bucket, "S3Key": filename + ".zip"},
+                        "LayerName": props["LayerName"],
+                    },
+                }
+            )
 
     return template
 
 
-def handler(event, context) -> Dict[str, Union[str, int]]:
+def handler(event, _context) -> Dict[str, Union[str, int]]:
+    os.chdir("/tmp")
+
     fragment = event["fragment"]
     status = "success"
     try:
-        fragment = handle_template(event["requestId"], event["fragment"])
-    except Exception:
+        fragment = handle_template(event["fragment"])
+    except Exception as error:
         status = "failed"
-    return {"requestId": event["requestId"], "status": status, "fragment": fragment}
+        message = str(error)
+    return {
+        "requestId": event["requestId"],
+        "status": status,
+        "fragment": fragment,
+        "message": message,
+    }
